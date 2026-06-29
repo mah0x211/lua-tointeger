@@ -25,11 +25,12 @@
  *
  */
 
-#include <ctype.h>
-#include <stdint.h>
 // lua
 #include <lauxlib.h>
-#include <lua.h>
+
+// system
+#include <ctype.h>
+#include <stdint.h>
 
 static int tointeger_lua(lua_State *L)
 {
