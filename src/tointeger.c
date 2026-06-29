@@ -28,81 +28,31 @@
 // lua
 #include <lauxlib.h>
 
-// system
-#include <ctype.h>
-#include <stdint.h>
-
 static int tointeger_lua(lua_State *L)
 {
-    switch (lua_type(L, 1)) {
-    /* number: avoid string round-trip entirely */
-    case LUA_TNUMBER:
 #if LUA_VERSION_NUM >= 503
-        /* Lua 5.3+: integer subtype — return as-is */
-        if (lua_isinteger(L, 1)) {
-            lua_pushvalue(L, 1);
-            return 1;
-        }
-#endif
-        /* float subtype: accept only when fractional part is zero */
-        {
-            lua_Number n   = lua_tonumber(L, 1);
-            lua_Integer iv = (lua_Integer)n;
-            if ((lua_Number)iv == n) {
-                lua_pushinteger(L, iv);
-            } else {
-                lua_pushnil(L);
-            }
-            return 1;
-        }
-
-    /* string: parse decimal integer manually */
-    case LUA_TSTRING: {
-        size_t len         = 0;
-        const uint8_t *str = (const uint8_t *)lua_tolstring(L, 1, &len);
-        size_t i           = 0;
-
-        if (!len) {
-            lua_pushnil(L);
-            return 1;
-        }
-
-        switch (*str) {
-        case '-': {
-            int64_t dec = 0;
-            i++;
-            do {
-                if (!isdigit(str[i])) {
-                    lua_pushnil(L);
-                    return 1;
-                }
-                dec = (dec << 3) + (dec << 1) + (str[i] - '0');
-            } while (++i < len);
-            lua_pushinteger(L, -dec);
-            return 1;
-        }
-        case '+':
-            i++;
-            /* fall through */
-        default: {
-            uint64_t dec = 0;
-            do {
-                if (!isdigit(str[i])) {
-                    lua_pushnil(L);
-                    return 1;
-                }
-                dec = (dec << 3) + (dec << 1) + (str[i] - '0');
-            } while (++i < len);
-            lua_pushinteger(L, dec);
-            return 1;
-        }
-        }
-    }
-
-    default:
-        lua_pushnil(L);
+    /* Lua 5.3+: integer subtype — return as-is */
+    if (lua_isinteger(L, 1)) {
+        lua_settop(L, 1);
         return 1;
     }
+#endif
+
+    /* number or numeric string: check that the value has no fractional part */
+    if (lua_isnumber(L, 1)) {
+        lua_Number n   = lua_tonumber(L, 1);
+        lua_Integer iv = (lua_Integer)n;
+
+        if ((lua_Number)iv == n) {
+            lua_settop(L, 0);
+            lua_pushinteger(L, iv);
+            return 1;
+        }
+    }
+
+    lua_settop(L, 0);
+    lua_pushnil(L);
+    return 1;
 }
 
 LUALIB_API int luaopen_tointeger(lua_State *L)

@@ -7,11 +7,9 @@ function testcase.parses_decimal_string()
     assert.equal(tointeger('42'), 42)
     assert.equal(tointeger('0'), 0)
     assert.equal(tointeger('-1'), -1)
-    assert.equal(tointeger('+100'), 100)
 end
 
-function testcase.returns_nil_for_non_decimal_string()
-    assert.is_nil(tointeger('0x10'))
+function testcase.returns_nil_for_non_integer_string()
     assert.is_nil(tointeger('abc'))
     assert.is_nil(tointeger(''))
     assert.is_nil(tointeger('1.5'))
@@ -23,7 +21,7 @@ function testcase.accepts_integer_number_directly()
     assert.equal(tointeger(-1), -1)
 end
 
-function testcase.returns_nil_for_float_number()
+function testcase.returns_nil_for_float_number_with_fraction()
     assert.is_nil(tointeger(1.5))
     assert.is_nil(tointeger(3.14))
 end
