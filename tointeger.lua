@@ -23,21 +23,18 @@
   tointeger.lua
   Created by Masatoshi Teruya on 17/10/18.
 
---]]
---- asign to local
+--]] --- asign to local
 local implc = require('tointeger.implc');
 local tonumber = tonumber;
 local floor = math.floor;
 
-
 --- tointeger
 -- @param str
 -- @return int
-local function tointeger( str )
-    local n = tonumber( str );
+local function tointeger(str)
+    local n = tonumber(str);
 
-    return n and floor( n ) == n and n or nil;
+    return n and floor(n) == n and n or nil;
 end
-
 
 return implc.LUAJIT and tointeger or implc.tointeger;
