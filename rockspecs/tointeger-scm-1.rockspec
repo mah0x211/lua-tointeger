@@ -29,10 +29,9 @@ build = {
         },
     },
     modules = {
-        ["tointeger"] = "tointeger.lua",
-        ["tointeger.implc"] = {
+        ["tointeger"] = {
             sources = {
-                "src/implc.c",
+                "src/tointeger.c",
             },
         },
     },

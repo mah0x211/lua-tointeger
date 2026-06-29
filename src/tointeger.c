@@ -19,8 +19,8 @@
  *  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  *  DEALINGS IN THE SOFTWARE.
  *
- *  src/implc.c
- *  lua-rfcvalid
+ *  src/tointeger.c
+ *  lua-tointeger
  *  Created by Masatoshi Teruya on 17/10/06.
  *
  */
@@ -34,62 +34,79 @@
 
 static int tointeger_lua(lua_State *L)
 {
-    size_t len   = 0;
-    uint8_t *str = (uint8_t *)luaL_checklstring(L, 1, &len);
+    switch (lua_type(L, 1)) {
+    /* number: avoid string round-trip entirely */
+    case LUA_TNUMBER:
+#if LUA_VERSION_NUM >= 503
+        /* Lua 5.3+: integer subtype — return as-is */
+        if (lua_isinteger(L, 1)) {
+            lua_pushvalue(L, 1);
+            return 1;
+        }
+#endif
+        /* float subtype: accept only when fractional part is zero */
+        {
+            lua_Number n   = lua_tonumber(L, 1);
+            lua_Integer iv = (lua_Integer)n;
+            if ((lua_Number)iv == n) {
+                lua_pushinteger(L, iv);
+            } else {
+                lua_pushnil(L);
+            }
+            return 1;
+        }
 
-    lua_pushnil(L);
-    if (len) {
-        size_t i = 0;
+    /* string: parse decimal integer manually */
+    case LUA_TSTRING: {
+        size_t len         = 0;
+        const uint8_t *str = (const uint8_t *)lua_tolstring(L, 1, &len);
+        size_t i           = 0;
 
-#define str2int(v)                                                             \
-    do {                                                                       \
-        if (!isdigit(str[i])) {                                                \
-            return 1;                                                          \
-        }                                                                      \
-        /* dec = dec * 10 + ( ascii_digit - '0' ) */                           \
-        (v) = ((v) << 3) + ((v) << 1) + (str[i] - '0');                        \
-    } while (++i < len)
+        if (!len) {
+            lua_pushnil(L);
+            return 1;
+        }
 
         switch (*str) {
         case '-': {
             int64_t dec = 0;
-
             i++;
-            str2int(dec);
+            do {
+                if (!isdigit(str[i])) {
+                    lua_pushnil(L);
+                    return 1;
+                }
+                dec = (dec << 3) + (dec << 1) + (str[i] - '0');
+            } while (++i < len);
             lua_pushinteger(L, -dec);
             return 1;
         }
-
         case '+':
             i++;
+            /* fall through */
         default: {
             uint64_t dec = 0;
-
-            str2int(dec);
+            do {
+                if (!isdigit(str[i])) {
+                    lua_pushnil(L);
+                    return 1;
+                }
+                dec = (dec << 3) + (dec << 1) + (str[i] - '0');
+            } while (++i < len);
             lua_pushinteger(L, dec);
             return 1;
         }
         }
-
-#undef str2num
     }
 
-    return 1;
+    default:
+        lua_pushnil(L);
+        return 1;
+    }
 }
 
-LUALIB_API int luaopen_tointeger_implc(lua_State *L)
+LUALIB_API int luaopen_tointeger(lua_State *L)
 {
-    lua_createtable(L, 0, 2);
-    lua_pushstring(L, "tointeger");
     lua_pushcfunction(L, tointeger_lua);
-    lua_rawset(L, -3);
-
-#if defined(LUA_LJDIR)
-    // set LUAJIT flag
-    lua_pushstring(L, "LUAJIT");
-    lua_pushboolean(L, 1);
-    lua_rawset(L, -3);
-#endif
-
     return 1;
 }
